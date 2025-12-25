@@ -3,7 +3,7 @@ import {
   Play, Tv, Star, Search, Menu, X, Zap, 
   Volume2, VolumeX, Maximize, Minimize, 
   SkipBack, SkipForward, AlertCircle, 
-  ChevronLeft, Pause, Image
+  ChevronLeft, Pause
 } from 'lucide-react';
 
 interface Channel {
@@ -31,10 +31,6 @@ export default function Home() {
   const [currentTime, setCurrentTime] = useState<number>(0);
   const [duration, setDuration] = useState<number>(0);
   const [showControls, setShowControls] = useState<boolean>(true);
-  const [quality, setQuality] = useState<string>('Auto');
-  const [playbackRate, setPlaybackRate] = useState<number>(1.0);
-  const [showQualityMenu, setShowQualityMenu] = useState<boolean>(false);
-  const [showPlaybackRateMenu, setShowPlaybackRateMenu] = useState<boolean>(false);
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
   const [randomPreviewChannel, setRandomPreviewChannel] = useState<Channel | null>(null);
   
@@ -43,13 +39,14 @@ export default function Home() {
   const progressBarRef = useRef<HTMLDivElement>(null);
 
   // Generate thumbnail based on channel name
-  const getChannelThumbnail = (channel: Channel, index: number): string => {
+  const getChannelThumbnail = (channel: Channel): string => {
     // Check if we already have a thumbnail
     if (channel.thumbnail) return channel.thumbnail;
     
     // Check if image failed to load before
     if (imageErrors.has(channel.id)) {
-      return getFallbackThumbnail(channel, index);
+      // fallback: use a generic image
+      return `https://dummyimage.com/300x200/888/fff&text=${encodeURIComponent(channel.name.substring(0, 20))}`;
     }
 
     // Try to get from TV logo APIs (these are just examples, actual implementation would vary)
@@ -90,18 +87,8 @@ export default function Home() {
     }
 
     // Fallback to colored gradient based on channel name
-    return getFallbackThumbnail(channel, index);
-  };
-
-  const getFallbackThumbnail = (channel: Channel, index: number): string => {
-    const colors = [
-      'bg-gradient-to-br from-red-600 to-pink-600',
-      'bg-gradient-to-br from-blue-600 to-purple-600',
-      'bg-gradient-to-br from-green-600 to-teal-600',
-      'bg-gradient-to-br from-yellow-600 to-orange-600',
-      'bg-gradient-to-br from-indigo-600 to-blue-600',
-    ];
-    return colors[index % colors.length];
+    // fallback: use a generic image
+    return `https://dummyimage.com/300x200/888/fff&text=${encodeURIComponent(channel.name.substring(0, 20))}`;
   };
 
   const handleImageError = (channelId: string) => {
@@ -429,19 +416,6 @@ export default function Home() {
     setShowLimit(prev => prev + 100);
   };
 
-  const handleQualityChange = (newQuality: string): void => {
-    setQuality(newQuality);
-    setShowQualityMenu(false);
-  };
-
-  const handlePlaybackRateChange = (rate: number): void => {
-    setPlaybackRate(rate);
-    if (videoRef.current) {
-      videoRef.current.playbackRate = rate;
-    }
-    setShowPlaybackRateMenu(false);
-  };
-
   // Player view
   if (selectedIndex !== null && selectedChannel) {
     return (
@@ -497,7 +471,7 @@ export default function Home() {
 
           {/* YouTube-style Top Bar */}
           {showControls && (
-            <div className="absolute top-0 left-0 right-0 bg-gradient-to-b from-black/70 to-transparent p-4">
+            <div className="absolute top-0 left-0 right-0 bg-linear-to-b from-black/70 to-transparent p-4">
               <div className="flex items-center justify-between">
                 <button
                   onClick={() => setSelectedIndex(null)}
@@ -540,7 +514,7 @@ export default function Home() {
 
           {/* YouTube-style Bottom Controls */}
           {showControls && (
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/90 to-transparent p-4">
+            <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black via-black/90 to-transparent p-4">
               {/* Progress Bar */}
               <div 
                 ref={progressBarRef}
@@ -711,8 +685,8 @@ export default function Home() {
                 {/* Channel preview background */}
                 {randomPreviewChannel && (
                   <div className="absolute inset-0 opacity-20">
-                    <div className={getChannelThumbnail(randomPreviewChannel, 0).startsWith('bg-gradient') 
-                      ? `w-full h-full ${getChannelThumbnail(randomPreviewChannel, 0)}`
+                    <div className={getChannelThumbnail(randomPreviewChannel).startsWith('bg-gradient') 
+                      ? `w-full h-full ${getChannelThumbnail(randomPreviewChannel)}`
                       : 'w-full h-full bg-gradient-to-br from-red-900/30 to-pink-900/30'
                     } />
                   </div>
@@ -803,8 +777,8 @@ export default function Home() {
           ) : (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {displayShows.map((show, index) => {
-                  const thumbnail = getChannelThumbnail(show, index);
+                {displayShows.map((show) => {
+                  const thumbnail = getChannelThumbnail(show);
                   const isGradientClass = thumbnail.startsWith('bg-gradient');
                   
                   return (
